@@ -51,4 +51,13 @@ dependencies {
     // by viewModels
     implementation("androidx.activity:activity-ktx:1.8.2")
 
+    // retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // retrofit coroutines
+    implementation("com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2")
+    // retrofit gson converter
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    //gson
+    implementation("com.google.code.gson:gson:2.8.9")
+
 }
