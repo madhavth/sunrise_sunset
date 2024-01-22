@@ -45,39 +45,11 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         )
     }
 
-    // Coroutine function to fetch sunrise or sunset time from the Sunrise-Sunset API
-    private fun fetchTime(type: String): LocalDateTime? {
-        return try {
-            val apiUrl =
-                URL("https://api.sunrise-sunset.org/json?lat=37.7749&lng=-122.4194&formatted=0")
-            val urlConnection: HttpURLConnection = apiUrl.openConnection() as HttpURLConnection
-            try {
-                val reader = BufferedReader(InputStreamReader(urlConnection.inputStream))
-                val response = StringBuilder()
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    response.append(line)
-                }
-
-                val jsonResponse = JSONObject(response.toString())
-                val timeUTC = jsonResponse.getJSONObject("results").getString(type)
-                val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
-                val dateTime = formatter.parse(timeUTC)
-                LocalDateTime.ofInstant(dateTime.toInstant(), ZoneId.systemDefault())
-            } finally {
-                urlConnection.disconnect()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
     fun fetchSunriseTime() {
         // Asynchronously fetch sunrise and sunset times
         viewModelScope.launch(Dispatchers.IO) {
-            val sunriseDeferred = async { fetchTime("sunrise") }
-            val sunsetDeferred = async { fetchTime("sunset") }
+            val sunriseDeferred = async { repository.fetchTime("sunrise") }
+            val sunsetDeferred = async { repository.fetchTime("sunset") }
 
             // Await the results of asynchronous tasks
             val sunriseTime = sunriseDeferred.await()
