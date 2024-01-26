@@ -11,28 +11,38 @@ import java.time.ZoneId
 import java.util.Locale
 
 class MainRepository {
+    private var cachedResults: JSONObject? = null
+    fun fetchSunriseSunsetResults(): JSONObject? {
+        if (cachedResults != null) {
+            return cachedResults!!
+        }
+
+        val apiUrl =
+            URL("https://api.sunrise-sunset.org/json?lat=37.7749&lng=-122.4194&formatted=0")
+        val urlConnection: HttpURLConnection = apiUrl.openConnection() as HttpURLConnection
+        try {
+            val reader = BufferedReader(InputStreamReader(urlConnection.inputStream))
+            val response = StringBuilder()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                response.append(line)
+            }
+
+            cachedResults = JSONObject(response.toString())
+        } finally {
+            urlConnection.disconnect()
+        }
+        return null
+    }
+
     // Coroutine function to fetch sunrise or sunset time from the Sunrise-Sunset API
     fun fetchTime(type: String): LocalDateTime? {
         return try {
-            val apiUrl =
-                URL("https://api.sunrise-sunset.org/json?lat=37.7749&lng=-122.4194&formatted=0")
-            val urlConnection: HttpURLConnection = apiUrl.openConnection() as HttpURLConnection
-            try {
-                val reader = BufferedReader(InputStreamReader(urlConnection.inputStream))
-                val response = StringBuilder()
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    response.append(line)
-                }
-
-                val jsonResponse = JSONObject(response.toString())
-                val timeUTC = jsonResponse.getJSONObject("results").getString(type)
-                val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
-                val dateTime = formatter.parse(timeUTC)
-                LocalDateTime.ofInstant(dateTime.toInstant(), ZoneId.systemDefault())
-            } finally {
-                urlConnection.disconnect()
-            }
+            val jsonResponse = fetchSunriseSunsetResults() ?: return null
+            val timeUTC = jsonResponse.getJSONObject("results").getString(type)
+            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
+            val dateTime = formatter.parse(timeUTC)
+            LocalDateTime.ofInstant(dateTime.toInstant(), ZoneId.systemDefault())
         } catch (e: Exception) {
             e.printStackTrace()
             null
