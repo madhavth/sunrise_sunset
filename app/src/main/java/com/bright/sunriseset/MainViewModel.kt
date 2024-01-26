@@ -25,6 +25,10 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
     private val _sunsetSunriseStateState = MutableLiveData<SunsetSunriseState>()
     val sunsetSunriseStateState: LiveData<SunsetSunriseState> = _sunsetSunriseStateState
 
+    init {
+        fetchSunriseTime()
+    }
+
     /**
      * Retrieves a localized time string based on the user's preferred language.
      *
@@ -32,9 +36,9 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
      * @param context The application context to access resources and preferences.
      * @return A string representation of the localized time.
      */
-    private fun getLocalizedTime(time: LocalDateTime, context: Context): String {
+    private fun getLocalizedTime(time: LocalDateTime, context: Context, locale: Locale?= null): String {
         // Retrieve the user's preferred language from the device settings
-        val userPreferredLanguage = Locale.getDefault().language
+        val userPreferredLanguage = locale?.language ?: Locale.getDefault().language
 
         // Create a SimpleDateFormat with the user's preferred language
         val sdf = SimpleDateFormat("hh:mm a", Locale(userPreferredLanguage))
@@ -70,5 +74,9 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
                 )
             }
         }
+    }
+
+    fun onLocaleChanged() {
+        fetchSunriseTime()
     }
 }

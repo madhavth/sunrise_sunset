@@ -27,12 +27,11 @@ class MainRepository {
             while (reader.readLine().also { line = it } != null) {
                 response.append(line)
             }
-
             cachedResults = JSONObject(response.toString())
         } finally {
             urlConnection.disconnect()
         }
-        return null
+        return cachedResults
     }
 
     // Coroutine function to fetch sunrise or sunset time from the Sunrise-Sunset API
