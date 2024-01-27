@@ -1,10 +1,17 @@
 package com.bright.sunriseset
 
 import android.content.Context
+import android.content.res.Configuration
 import android.icu.text.SimpleDateFormat
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.SpinnerAdapter
 import androidx.activity.viewModels
+import androidx.annotation.IdRes
+import androidx.annotation.StringRes
 import androidx.lifecycle.lifecycleScope
 import com.bright.sunriseset.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
@@ -51,20 +58,58 @@ class PlanetInfoActivity : AppCompatActivity() {
             updateUI(sunsetSunriseState)
         }
 
+        viewModel.selectedLocale.observe(this) {
+            viewModel.fetchSunriseTime(it)
+        }
+
     }
 
     private fun updateUI(sunsetSunriseState: SunsetSunriseState?) {
         if (sunsetSunriseState == null) return
 
         binding.textViewSunrise.text =
-            "${getString(R.string.SunriseTime)} ${sunsetSunriseState?.sunriseTime}"
+            "${getResourceString(R.string.SunriseTime)} ${sunsetSunriseState?.sunriseTime}"
         binding.textViewSunset.text =
-            "${getString(R.string.SunsetTime)} ${sunsetSunriseState?.sunsetTime}"
+            "${getResourceString(R.string.SunsetTime)} ${sunsetSunriseState?.sunsetTime}"
 
     }
 
     private fun bindViews() {
+        binding.languageSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            viewModel.locales
+        ).apply {
+            // set selected item listener
+        }
+        binding.languageSpinner.onItemSelectedListener = object :
+            AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                viewModel.onLocaleChanged(viewModel.locales[position])
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // do nothing
+            }
+        }
 
     }
 
+    fun getLocaleStringResource(requestedLocale: Locale, resourceId: Int, context: Context): String? {
+        val result: String
+        // use latest api
+        val config = Configuration(context.resources.configuration)
+        config.setLocale(requestedLocale)
+        result = context.createConfigurationContext(config).getText(resourceId).toString()
+        return result
+    }
+
+    fun getResourceString(@StringRes id: Int):String {
+        return getLocaleStringResource(Locale(viewModel.selectedLocale.value.toString()), id, this) ?: ""
+    }
 }

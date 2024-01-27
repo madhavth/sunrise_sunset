@@ -35,13 +35,16 @@ class MainRepository {
     }
 
     // Coroutine function to fetch sunrise or sunset time from the Sunrise-Sunset API
-    fun fetchTime(type: String): LocalDateTime? {
+    fun fetchTime(jsonResponse: JSONObject?, type: String,locale:String?=null): LocalDateTime? {
         return try {
-            val jsonResponse = fetchSunriseSunsetResults() ?: return null
+            if(jsonResponse==null) return null
             val timeUTC = jsonResponse.getJSONObject("results").getString(type)
-            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
+            val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX",
+                Locale(locale?: Locale.getDefault().language)
+            )
             val dateTime = formatter.parse(timeUTC)
-            LocalDateTime.ofInstant(dateTime.toInstant(), ZoneId.systemDefault())
+            val formattedTime = LocalDateTime.ofInstant(dateTime.toInstant(), ZoneId.systemDefault())
+            formattedTime
         } catch (e: Exception) {
             e.printStackTrace()
             null

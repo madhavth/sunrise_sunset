@@ -2,7 +2,9 @@ package com.bright.sunriseset
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import android.icu.text.SimpleDateFormat
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,24 +12,20 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
 
+
 class MainViewModel(private val application: Application) : AndroidViewModel(application) {
 
+    val locales: List<String> = listOf(Locale.CHINESE.language, Locale.ENGLISH.language)
     private val repository = MainRepository()
     private val _sunsetSunriseStateState = MutableLiveData<SunsetSunriseState>()
     val sunsetSunriseStateState: LiveData<SunsetSunriseState> = _sunsetSunriseStateState
 
-    init {
-        fetchSunriseTime()
-    }
+    private val _selectedLocale = MutableLiveData<String>(locales[0])
+    val selectedLocale: LiveData<String> = _selectedLocale
 
     /**
      * Retrieves a localized time string based on the user's preferred language.
@@ -36,9 +34,13 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
      * @param context The application context to access resources and preferences.
      * @return A string representation of the localized time.
      */
-    private fun getLocalizedTime(time: LocalDateTime, context: Context, locale: Locale?= null): String {
+    private fun getLocalizedTime(
+        time: LocalDateTime,
+        context: Context,
+        locale: String? = null
+    ): String {
         // Retrieve the user's preferred language from the device settings
-        val userPreferredLanguage = locale?.language ?: Locale.getDefault().language
+        val userPreferredLanguage = locale ?: Locale.getDefault().language
 
         // Create a SimpleDateFormat with the user's preferred language
         val sdf = SimpleDateFormat("hh:mm a", Locale(userPreferredLanguage))
@@ -49,21 +51,21 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         )
     }
 
-    fun fetchSunriseTime() {
+    fun fetchSunriseTime(locale: String?) {
         // Asynchronously fetch sunrise and sunset times
         viewModelScope.launch(Dispatchers.IO) {
-            val sunriseDeferred = async { repository.fetchTime("sunrise") }
-            val sunsetDeferred = async { repository.fetchTime("sunset") }
+            val apiResponse = repository.fetchSunriseSunsetResults()
 
-            // Await the results of asynchronous tasks
-            val sunriseTime = sunriseDeferred.await()
-            val sunsetTime = sunsetDeferred.await()
+            // parse the fetched time
+            val sunriseTime = repository.fetchTime(apiResponse, "sunrise", locale)
+            val sunsetTime = repository.fetchTime(apiResponse, "sunset", locale)
 
             // If both sunrise and sunset times are available, localize and display them in Chinese
             if (sunriseTime != null && sunsetTime != null) {
                 // Localize sunrise and sunset times
-                val localizedSunrise = getLocalizedTime(sunriseTime, application.applicationContext)
-                val localizedSunset = getLocalizedTime(sunsetTime, application.applicationContext)
+                val localizedSunrise =
+                    getLocalizedTime(sunriseTime, application.applicationContext,locale)
+                val localizedSunset = getLocalizedTime(sunsetTime, application.applicationContext,locale)
 
                 // Display localized times on TextViews
                 _sunsetSunriseStateState.postValue(
@@ -76,7 +78,8 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         }
     }
 
-    fun onLocaleChanged() {
-        fetchSunriseTime()
+    fun onLocaleChanged(locale: String= locales[0]) {
+        _selectedLocale.postValue(locale)
     }
+
 }
